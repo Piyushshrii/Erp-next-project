@@ -3,7 +3,8 @@
 This guide provisions **Google Kubernetes Engine (GKE)** with Terraform and configures an **NGINX Ingress Controller** with a static IP for domain mapping.  
 ERPNext (or any app) can later be deployed on this cluster.
 
-![Uploading architecure terraforekm gcp erp next.drawio.png…]()
+<img width="1691" height="1351" alt="architecure terraforekm gcp erp next drawio" src="https://github.com/user-attachments/assets/b31391e8-1901-44ff-aadf-11940bc64a82" />
+
 
 
 ---
