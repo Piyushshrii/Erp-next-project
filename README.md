@@ -4,8 +4,8 @@ This guide provisions **Google Kubernetes Engine (GKE)** with Terraform and conf
 ERPNext (or any app) can later be deployed on this cluster.
 
    ##                GCP Infrastructure Architecture 
-<p align="left">
-  <img src="https://github.com/user-attachments/assets/b31391e8-1901-44ff-aadf-11940bc64a82" width="700">
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b31391e8-1901-44ff-aadf-11940bc64a82" width="500">
 </p>
 
 
