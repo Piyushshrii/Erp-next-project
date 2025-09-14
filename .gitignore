@@ -1,0 +1,22 @@
+# Terraform local state
+*.tfstate
+*.tfstate.backup
+
+# Terraform variable files
+*.tfvars
+*.tfvars.json
+
+# Terraform working directory
+.terraform/
+
+# Sensitive credentials
+terraform-key.json
+
+# Crash log (if Terraform crashes)
+crash.log
+
+# Ignore override files (used for local dev/test only)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
