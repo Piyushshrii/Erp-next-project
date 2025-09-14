@@ -5,7 +5,7 @@ ERPNext (or any app) can later be deployed on this cluster.
 
    ##                GCP Infrastructure Architecture 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b31391e8-1901-44ff-aadf-11940bc64a82" width="640">
+  <img src="https://github.com/user-attachments/assets/b31391e8-1901-44ff-aadf-11940bc64a82" width="610">
 </p>
 
 
