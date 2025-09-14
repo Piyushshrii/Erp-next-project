@@ -46,4 +46,182 @@ GCP APIs required:
 gcloud services enable container.googleapis.com compute.googleapis.com dns.googleapis.com
 ```
 
-... (content truncated for brevity, keep full in real file)
+---
+
+## 🔁 High-level flow
+
+1. Build custom Docker image (Frappe + ERPNext + HRMS) and push to DockerHub.
+2. Provision NFS provisioner inside GKE (creates StorageClass: nfs supporting ReadWriteMany).
+3. Update Helm `values.yaml` (image, persistence using nfs, ingress host).
+4. Modify `job-create-site.yaml` so the create-site job installs hrms, runs `bench build`, and clears cache.
+5. Install NGINX ingress controller bound to a reserved static IP.
+6. Install the ERPNext Helm chart with the modified values.
+7. Verify create-site job finishes and `sites/apps.txt` contains hrms.
+8. Map domain A record to static IP and enable TLS (cert-manager).
+
+---
+
+## 1️⃣ Build & Push Custom Docker Image (ERPNext + HRMS)
+
+Create an `apps.json` that lists the apps you want installed by the image-builder:
+
+**Docker/apps.json**
+```json
+[
+  { "url": "https://github.com/frappe/erpnext", "branch": "version-15" },
+  { "url": "https://github.com/frappe/hrms",     "branch": "version-15" }
+]
+```
+
+Encode it and build:
+
+```sh
+export APPS_JSON_BASE64=$(base64 -w 0 Docker/apps.json)
+
+docker build   --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe   --build-arg=FRAPPE_BRANCH=version-15   --build-arg=PYTHON_VERSION=3.11.6   --build-arg=NODE_VERSION=18.18.2   --build-arg=APPS_JSON_BASE64=$APPS_JSON_BASE64   --tag=<your-dockerhub-username>/frappe:erpnext-hrms   --file=Docker/Dockerfile .
+
+docker login
+docker push <your-dockerhub-username>/frappe:erpnext-hrms
+```
+
+---
+
+## 2️⃣ Provision NFS Storage (in-cluster)
+
+ERPNext's `sites/` directory must be shared (ReadWriteMany). Install the NFS server provisioner:
+
+```sh
+kubectl create namespace nfs
+
+helm repo add nfs-ganesha-server-and-external-provisioner   https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner
+helm repo update
+
+helm upgrade --install in-cluster nfs-ganesha-server-and-external-provisioner/nfs-server-provisioner   -n nfs   --set 'storageClass.mountOptions={vers=4.1}'   --set persistence.enabled=true   --set persistence.size=20Gi
+```
+
+Verify StorageClass `nfs` is present:
+
+```sh
+kubectl get storageclass
+```
+
+---
+
+## 3️⃣ Prepare Helm Chart Changes
+
+Clone the upstream Helm chart and edit the values.yaml for production:
+
+```sh
+git clone https://github.com/frappe/helm.git
+cd helm/erpnext
+```
+
+Then edit `values.yaml` and `job-create-site.yaml` as shown above.
+
+---
+
+## 4️⃣ Install Ingress Controller (NGINX) with Static IP
+
+Reserve a static IP using Terraform and then install:
+
+```sh
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+kubectl create namespace ingress-nginx
+
+helm install nginx-ingress ingress-nginx/ingress-nginx   --namespace ingress-nginx   --set controller.service.loadBalancerIP=$(terraform output -raw static_ip)   --set controller.publishService.enabled=true
+```
+
+---
+
+## 5️⃣ Deploy ERPNext via Helm
+
+```sh
+kubectl create namespace erpnext
+
+helm upgrade --install frappe-bench ./ -n erpnext -f values.yaml
+
+kubectl get pods -n erpnext -w
+```
+
+Wait until the `create-site` job completes successfully.
+
+---
+
+## 6️⃣ Verify Site Creation & Installed Apps
+
+```sh
+kubectl logs -n erpnext <frappe-bench-erpnext-new-site-podName>
+
+kubectl exec -it -n erpnext <frappe-bench-erpnext-worker-d-podName> -- sh
+# inside container:
+ls sites/
+cat sites/apps.txt
+```
+
+You should find `erp.piyush-web-app.co.in` and `apps.txt` includes: frappe, erpnext, hrms.
+
+---
+
+## 7️⃣ DNS & Access (production domain + TLS)
+
+Point DNS A record to your reserved static IP.
+
+Check TLS certificates with cert-manager and verify ingress.
+
+Open your site:
+
+```sh
+https://erp.piyush-web-app.co.in
+```
+
+---
+
+## 8️⃣ Optional: Argo CD (GitOps)
+
+Install ArgoCD:
+
+```sh
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl port-forward -n argocd svc/argocd-server 8083:443
+```
+
+Then configure an Application manifest to sync this repo.
+
+---
+
+## 🛠 Troubleshooting & Tips
+
+- **CrashLoopBackOff / apps.txt not found:** Likely NFS not mounted properly.
+- **Redis errors:** Ensure redis-cache and redis-queue pods are running or configure external Redis.
+- **StorageClass binding issues:** Use a StorageClass with `Immediate` binding if WaitForFirstConsumer blocks scheduling.
+- **Secrets:** Use Kubernetes Secrets for passwords.
+
+---
+
+## 📌 Example Commands Summary
+
+```sh
+# Build Image
+docker build -t <user>/frappe:erpnext-hrms .
+docker push <user>/frappe:erpnext-hrms
+
+# Install NFS provisioner
+kubectl create namespace nfs
+helm repo add nfs-ganesha-server-and-external-provisioner https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner
+helm upgrade --install in-cluster nfs-ganesha-server-and-external-provisioner/nfs-server-provisioner -n nfs --set persistence.enabled=true --set persistence.size=20Gi
+
+# Install ingress controller
+kubectl create namespace ingress-nginx
+helm install nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.service.loadBalancerIP=$(terraform output -raw static_ip) --set controller.publishService.enabled=true
+
+# Deploy ERPNext
+kubectl create namespace erpnext
+helm upgrade --install frappe-bench ./helm/erpnext -n erpnext -f helm/erpnext/values.yaml
+```
+
+---
+
+This README is designed for **production GKE deployments** and follows best practices for persistence, ingress, and site automation.
