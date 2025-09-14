@@ -92,7 +92,14 @@ terraform output
 
 Expected:
 - `static_ip` → reserved IP for ingress controller  
-- `kubeconfig` → automatically updated entry for your GKE cluster  
+- `kubeconfig` → automatically updated entry for your GKE cluster
+
+Add cluster entry in your local machine to acces the cluster
+```
+gcloud container clusters get-credentials <CLUSTER_NAME> \
+  --region <REGION> \
+  --project <PROJECT_ID>
+```
 
 Verify cluster access:
 ```sh
