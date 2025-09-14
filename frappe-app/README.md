@@ -63,6 +63,11 @@ gcloud services enable container.googleapis.com compute.googleapis.com dns.googl
 
 ## 1️⃣ Build & Push Custom Docker Image (ERPNext + HRMS)
 
+Move to frappe-app directory
+```
+cd frappe-app
+```
+
 Create an `apps.json` that lists the apps you want installed by the image-builder:
 
 **Docker/apps.json**
