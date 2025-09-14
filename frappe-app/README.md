@@ -125,22 +125,9 @@ Then edit `values.yaml` and `job-create-site.yaml` as shown above.
 
 ---
 
-## 4️⃣ Install Ingress Controller (NGINX) with Static IP
-
-Reserve a static IP using Terraform and then install:
-
-```sh
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-
-kubectl create namespace ingress-nginx
-
-helm install nginx-ingress ingress-nginx/ingress-nginx   --namespace ingress-nginx   --set controller.service.loadBalancerIP=$(terraform output -raw static_ip)   --set controller.publishService.enabled=true
-```
-
 ---
 
-## 5️⃣ Deploy ERPNext via Helm
+## 4️⃣ Deploy ERPNext via Helm
 
 ```sh
 kubectl create namespace erpnext
@@ -154,7 +141,7 @@ Wait until the `create-site` job completes successfully.
 
 ---
 
-## 6️⃣ Verify Site Creation & Installed Apps
+## 5️ Verify Site Creation & Installed Apps
 
 ```sh
 kubectl logs -n erpnext <frappe-bench-erpnext-new-site-podName>
@@ -169,7 +156,7 @@ You should find `erp.piyush-web-app.co.in` and `apps.txt` includes: frappe, erpn
 
 ---
 
-## 7️⃣ DNS & Access (production domain + TLS)
+## 6️ DNS & Access (production domain + TLS)
 
 Point DNS A record to your reserved static IP.
 
@@ -183,7 +170,7 @@ https://erp.piyush-web-app.co.in
 
 ---
 
-## 8️⃣ Optional: Argo CD (GitOps)
+## 7️⃣ Optional: Argo CD (GitOps)
 
 Install ArgoCD:
 
