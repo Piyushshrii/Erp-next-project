@@ -1,7 +1,8 @@
 # 🚀 ERPNext + HRMS — Production GKE Deployment (Helm + NFS + Ingress)
-# 
 
 
+##Deployment solution Architecture
+<img width="2266" height="1077" alt="diagram-export-9-15-2025-12_41_36-AM" src="https://github.com/user-attachments/assets/7d17b5ad-46c5-46bf-b9f3-38c660991c8c" />
 
 
 This repository shows a production-grade deployment of **Frappe / ERPNext** with the **HRMS** app on **Google Kubernetes Engine (GKE)** using Helm charts.  
